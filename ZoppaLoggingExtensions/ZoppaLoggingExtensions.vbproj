@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>ZoppaLoggingExtensions</RootNamespace>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <Version>0.9.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
