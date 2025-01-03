@@ -4,6 +4,7 @@ Option Explicit On
 Imports System.IO
 Imports System.IO.Compression
 Imports System.Net
+Imports System.Net.NetworkInformation
 Imports System.Threading
 Imports Microsoft.Extensions.Logging
 
@@ -23,10 +24,10 @@ NotInheritable Class LocalLogger
     Private _encode As System.Text.Encoding
 
     ' 書込みバッファ
-    Private ReadOnly _queue As New Queue(Of LogData)()
+    Private ReadOnly _queue As New Queue(Of ILogData)()
 
     ' エラー書込みバッファ
-    Private ReadOnly _errQueue As New Queue(Of LogData)()
+    Private ReadOnly _errQueue As New Queue(Of ILogData)()
 
     ' 前回書込み完了日時
     Private _prevWriteDate As Date = Date.Now
@@ -90,7 +91,7 @@ NotInheritable Class LocalLogger
 
     ''' <summary>ログをバッファに溜める。</summary>
     ''' <param name="message">出力するログ。</param>
-    Sub Stock(message As LogData)
+    Sub Stock(message As ILogData)
         ' 書き出す情報をため込む
         Dim cnt As Integer
         SyncLock Me
@@ -162,7 +163,7 @@ NotInheritable Class LocalLogger
                     '    対象ログレベル以上のログレベルを出力する場合、出力する
                     ' 3. キューにログ情報が空の場合はループを抜けてファイルストリームを閉じる
                     writed = False
-                    Dim ln As LogData? = Nothing
+                    Dim ln As ILogData = Nothing
                     Dim outd As Boolean = False
                     SyncLock Me
                         If Me._errQueue.Count > 0 Then                  ' 1
@@ -180,16 +181,14 @@ NotInheritable Class LocalLogger
                     If ln IsNot Nothing Then
                         Try
                             If outd Then
-                                With ln.Value
-                                    Dim msg = $"[{ .OutTime:yyyy/M/d H:mm:ss}|{ .LogLv}|{ .CategoryName}|{ .EvId}{ .ScopeString}]{ .Message}"
-                                    sw.WriteLine(msg)
+                                Dim msg = ln.GetFormatMessage()
+                                sw.WriteLine(msg)
 
-                                    Dim wr = If(.LogLv >= LogLevel.[Error], Me._errorWriter, Me._outWriter)
-                                    wr.WriteLine(msg)
-                                End With
+                                Dim wr = If(ln.LogLv >= LogLevel.[Error], Me._errorWriter, Me._outWriter)
+                                wr.WriteLine(msg)
                             End If
                         Catch ex As Exception
-                            Me._errQueue.Enqueue(ln.Value)
+                            Me._errQueue.Enqueue(ln)
                         End Try
                         writed = True
                     End If
@@ -346,53 +345,12 @@ NotInheritable Class LocalLogger
         End Try
     End Sub
 
-    ''' <summary>書き込む情報。</summary>
-    Public Structure LogData
+    Public Interface ILogData
 
-        ''' <summary>カテゴリ名を取得する。</summary>
-        Public ReadOnly Property CategoryName As String
+        ReadOnly Property LogLv As LogLevel
 
-        ''' <summary>出力時刻を取得する。</summary>
-        Public ReadOnly Property OutTime As Date
+        Function GetFormatMessage() As String
 
-        ''' <summary>ログレベルを取得する。</summary>
-        Public ReadOnly Property LogLv As LogLevel
-
-        ''' <summary>イベントIDを取得する。</summary>
-        Public ReadOnly Property EvId As EventId
-
-        ''' <summary>メッセージを取得する。</summary>
-        Public ReadOnly Property Message As String
-
-        ''' <summary>スコープリストを取得する。</summary>
-        Public ReadOnly Property Scopes As List(Of ZoppaLoggingLogger.ScopeBase)
-
-        ''' <summary>スコープ文字列を取得する。</summary>
-        Public ReadOnly Property ScopeString As String
-            Get
-                Dim res As String = ""
-                For Each s In Me.Scopes
-                    res &= $"|{s.ScopeName}"
-                Next
-                Return res
-            End Get
-        End Property
-
-        ''' <summary>コンストラクタ。</summary>
-        ''' <param name="cateNm">カテゴリ名。</param>
-        ''' <param name="lv">ログレベル。</param>
-        ''' <param name="eid">イベントID。</param>
-        ''' <param name="msg">メッセージ。</param>
-        ''' <param name="scopes">スコープリスト。</param>
-        Public Sub New(cateNm As String, lv As LogLevel, eid As EventId, msg As String, scopes As List(Of ZoppaLoggingLogger.ScopeBase))
-            Me.CategoryName = cateNm
-            Me.OutTime = Date.Now
-            Me.LogLv = lv
-            Me.EvId = eid
-            Me.Message = msg
-            Me.Scopes = New List(Of ZoppaLoggingLogger.ScopeBase)(scopes)
-        End Sub
-
-    End Structure
+    End Interface
 
 End Class

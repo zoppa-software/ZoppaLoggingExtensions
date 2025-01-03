@@ -3,6 +3,7 @@ Option Explicit On
 
 Imports System.Threading
 Imports Microsoft.Extensions.Logging
+Imports ZoppaLoggingExtensions.ZoppaLoggingLogger
 
 ''' <summary>ログ出力クラスです。</summary>
 Public NotInheritable Class ZoppaLoggingLogger
@@ -70,7 +71,7 @@ Public NotInheritable Class ZoppaLoggingLogger
         End If
 
         If Me.IsEnabled(logLevel) Then
-            Me._logger.Stock(New LocalLogger.LogData(Me.CategoryName, logLevel, eventId, formatter(state, exception), Me.Scopes))
+            Me._logger.Stock(New LogData(Of TState)(Me.CategoryName, logLevel, eventId, Me.Scopes, state, exception, formatter))
             Me._logger.Write(Me._mutex)
         End If
     End Sub
@@ -126,6 +127,85 @@ Public NotInheritable Class ZoppaLoggingLogger
                 Return Me._state.ToString()
             End Get
         End Property
+
+    End Class
+
+    ''' <summary>書き込む情報。</summary>
+    Public NotInheritable Class LogData(Of TState)
+        Implements LocalLogger.ILogData
+
+        ''' <summary>出力時刻を取得する。</summary>
+        Public ReadOnly Property OutTime As Date
+
+        ''' <summary>カテゴリ名を取得する。</summary>
+        Public ReadOnly Property CategoryName As String
+
+        ''' <summary>ログレベルを取得する。</summary>
+        Public ReadOnly Property LogLv As LogLevel Implements LocalLogger.ILogData.LogLv
+
+        ''' <summary>イベントIDを取得する。</summary>
+        Public ReadOnly Property EvId As EventId
+
+        ''' <summary>スコープ文字列を取得する。</summary>
+        Public ReadOnly Property ScopeString As String
+            Get
+                Dim res As String = ""
+                For Each s In Me.Scopes
+                    res &= $"|{s.ScopeName}"
+                Next
+                Return res
+            End Get
+        End Property
+
+        ''' <summary>スコープリストを取得する。</summary>
+        Public ReadOnly Property Scopes As List(Of ZoppaLoggingLogger.ScopeBase)
+
+        ''' <summary>状態を取得する。</summary>
+        Public ReadOnly Property State As TState
+
+        ''' <summary>例外を取得する。</summary>
+        Public ReadOnly Property Excep As Exception
+
+        ''' <summary>フォーマッタを取得する。</summary>
+        Public ReadOnly Property Formatter As Func(Of TState, Exception, String)
+
+        ''' <summary>コンストラクタ。</summary>
+        ''' <param name="cateNm">カテゴリ名。</param>
+        ''' <param name="lv">ログレベル。</param>
+        ''' <param name="eid">イベントID。</param>
+        ''' <param name="msg">メッセージ。</param>
+        ''' <param name="scopes">スコープリスト。</param>
+        ''' <param name="state">状態。</param>
+        ''' <param name="exception">例外。</param>
+        ''' <param name="formatter">フォーマッタ。</param>
+        Public Sub New(cateNm As String,
+                       lv As LogLevel,
+                       eid As EventId,
+                       scopes As List(Of ZoppaLoggingLogger.ScopeBase),
+                       state As TState,
+                       exception As Exception,
+                       formatter As Func(Of TState, Exception, String))
+            Me.OutTime = Date.Now
+            Me.CategoryName = cateNm
+            Me.LogLv = lv
+            Me.EvId = eid
+            Me.Scopes = New List(Of ZoppaLoggingLogger.ScopeBase)(scopes)
+            Me.State = state
+            Me.Excep = exception
+            Me.Formatter = formatter
+        End Sub
+
+        Public Function GetFormatMessage() As String Implements LocalLogger.ILogData.GetFormatMessage
+            Dim msg = Me.Formatter(Me.State, Me.Excep)
+            If TypeOf Me.State Is ZoppaFormattedLogValues Then
+                Dim stat As Object = Me.State
+                With CType(stat, ZoppaFormattedLogValues)
+                    Return $"[{ Me.OutTime:yyyy/M/d H:mm:ss}|{ Me.LogLv}|{ Me.CategoryName}|{ Me.EvId}{ Me.ScopeString}|{ .LogClass.Name}:{ .LogMember}:{ .LineNumber}] { Me.Formatter(Me.State, Me.Excep)}"
+                End With
+            Else
+                Return $"[{ Me.OutTime:yyyy/M/d H:mm:ss}|{ Me.LogLv}|{ Me.CategoryName}|{ Me.EvId}{ Me.ScopeString}] { Me.Formatter(Me.State, Me.Excep)}"
+            End If
+        End Function
 
     End Class
 
