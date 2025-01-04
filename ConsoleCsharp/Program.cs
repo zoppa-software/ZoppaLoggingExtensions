@@ -38,7 +38,7 @@ class TestCls
     public void Log()
     {
         ILogger logger = loggerFactory.CreateLogger<TestCls>();
-        logger.ZLog(this).LogDebug(1, "hit? {c,0.0} {d}", 100, 200);
+        logger.ZLog(this).LogDebug(1, "hit? {c} {d}", 100, 200);
         using (logger.ZLog(this).BeginScope("2")) {
             logger.ZLog(this).LogDebug(3, "Nothing to see here.");
             logger.ZLog(this).LogDebug(5, "Warning... that was odd.");

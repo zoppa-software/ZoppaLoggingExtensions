@@ -29,6 +29,8 @@ Class Program
         builder.Logging.SetMinimumLevel(LogLevel.Trace)
 
         Using host = builder.Build()
+            TestClass.TestMethod(host)
+
             Dim loggerFactory = host.Services.GetRequiredService(Of ILoggerFactory)()
 
             'Dim logger = host.Services.GetRequiredService(Of ILogger(Of String))()
@@ -45,3 +47,16 @@ Class Program
     End Function
 
 End Class
+
+Module TestClass
+
+    Public Sub TestMethod(host As IHost)
+        Dim loggerFactory = host.Services.GetRequiredService(Of ILoggerFactory)()
+
+        'Dim logger = host.Services.GetRequiredService(Of ILogger(Of String))()
+        Dim logger = loggerFactory.CreateLogger("TestMethod")
+
+        logger.ZLog(GetType(TestClass)).LogInformation("123")
+    End Sub
+
+End Module

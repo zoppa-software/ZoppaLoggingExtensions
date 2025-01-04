@@ -418,7 +418,7 @@ Public Module ZoppaLogProcessExtensions
 
     ''' <summary>ログラッパーを取得します。</summary>
     ''' <typeparam name="T">ログ出力するクラス。</typeparam>
-    ''' <param name="logger">この<see cref="ILogger"/>に出力します。
+    ''' <param name="logger">この<see cref="ILogger"/>に出力します。</param>
     ''' <param name="caller">呼び出し元のオブジェクト。</param>
     ''' <param name="callMember">呼び出し元のメソッド。</param>
     ''' <param name="lineNumber">呼び出し行位置。</param>
@@ -430,13 +430,25 @@ Public Module ZoppaLogProcessExtensions
 
     ''' <summary>ログラッパーを取得します。</summary>
     ''' <typeparam name="T">ログ出力するクラス。</typeparam>
-    ''' <param name="logger">この<see cref="ILogger"/>に出力します。
+    ''' <param name="logger">この<see cref="ILogger"/>に出力します。</param>
     ''' <param name="callMember">呼び出し元のメソッド。</param>
     ''' <param name="lineNumber">呼び出し行位置。</param>
     ''' <returns>ログラッパー。</returns>
     <Extension()>
     Public Function ZLog(Of T)(logger As ILogger, <CallerMemberName> Optional callMember As String = "", <CallerLineNumber> Optional lineNumber As Integer = 0) As LogWrapper
         Return New LogWrapper(logger, GetType(T), callMember, lineNumber)
+    End Function
+
+    ''' <summary>ログラッパーを取得します。</summary>
+    ''' <typeparam name="T">ログ出力するクラス。</typeparam>
+    ''' <param name="logger">この<see cref="ILogger"/>に出力します。</param>
+    ''' <param name="callerType">呼び出し元の型。</param>
+    ''' <param name="callMember">呼び出し元のメソッド。</param>
+    ''' <param name="lineNumber">呼び出し行位置。</param>
+    ''' <returns>ログラッパー。</returns>
+    <Extension()>
+    Public Function ZLog(logger As ILogger, callerType As Type, <CallerMemberName> Optional callMember As String = "", <CallerLineNumber> Optional lineNumber As Integer = 0) As LogWrapper
+        Return New LogWrapper(logger, callerType, callMember, lineNumber)
     End Function
 
     ''' <summary>フォーマット また、指定されたログレベルでログメッセージを書き込みます。</summary>
